@@ -7,10 +7,20 @@ import (
 )
 
 var (
-	validTestToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjJmMmI1ZTZkOTZlMWQ0YzJjNmRhMjBhOGEwMGFjN2ZlNzdhYWNlOTAifQ.eyJpc3MiOiJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20iLCJpYXQiOjE0ODkwNzA3OTksImV4cCI6MTQ4OTA3NDM5OSwiYXVkIjoiNjg5MDAxMDQyMDcyLWUyajVkOWtsajdnNDRiNWd2cGdhNDlvMDY3a21rMTQyLmFwcHMuZ29vZ2xldXNlcmNvbnRlbnQuY29tIiwic3ViIjoiMTE3NzExOTcyMTg5MTM5NzkxNTU0IiwiZW1haWxfdmVyaWZpZWQiOnRydWUsImF6cCI6IjY4OTAwMTA0MjA3Mi1lMmo1ZDlrbGo3ZzQ0YjVndnBnYTQ5bzA2N2ttazE0Mi5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbSIsIm5vbmNlIjoiMTQ0NzUxMzI0OCIsImVtYWlsIjoiemVub29memVuZ0BnbWFpbC5jb20iLCJuYW1lIjoiWmVubyBaZW5nIiwicGljdHVyZSI6Imh0dHBzOi8vbGg2Lmdvb2dsZXVzZXJjb250ZW50LmNvbS8tSEZqaW55aTFjYWsvQUFBQUFBQUFBQUkvQUFBQUFBQUFBQkEvRE5WSG5qXzRpN28vczk2LWMvcGhvdG8uanBnIiwiZ2l2ZW5fbmFtZSI6Ilplbm8iLCJmYW1pbHlfbmFtZSI6IlplbmciLCJsb2NhbGUiOiJlbiJ9.P-dmXpGpLi7uKuaVQaIiu81PZGFThkVunmP8j7bxBhVrPvo1AZCOc0pJWboohdNY1zgbhfW9QUBAomfkivL_vWd6vWyDUzHQwtqRmH0wYUgby2dZ6elBvjH4iVYP-xLLHIfFCYfnPod7FFPGTt3yNUdXPreVAL69GyznFQ7eoMtP3dB0HqpU0_FzZvL22CGVs3p-AEjIsirlKh_ZNCKoizq12GpLZnae5YyrPl0mjY-D3sEoMNLTargclmu2B49j8BnlP-GpY5ltJuObsegfi05l_eobJU6ek-BVRq2932L3D_N4DP1uEJdnBbyN5AgVAnt3EQNJAaD_8CkqahCx0A"
+	validTestToken = "eyJhbGciOiJSUzI1NiIsImtpZCI6IjNmM2VmOWM3ODAzY2QwYjhkNzUyNDdlZTBkMzFmZGQ1YzJjZjM4MTIifQ.eyJhenAiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJhdWQiOiI0MDc0MDg3MTgxOTIuYXBwcy5nb29nbGV1c2VyY29udGVudC5jb20iLCJzdWIiOiIxMTQxNjAzMjAyNzUzOTM3NTU0MjQiLCJlbWFpbCI6InBsdXRvbmlvQGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJhdF9oYXNoIjoiWlpXdHQtVzRFV1h2VDZSVFhmRGFSUSIsImV4cCI6MTUyNTcyNTcxOSwiaXNzIjoiaHR0cHM6Ly9hY2NvdW50cy5nb29nbGUuY29tIiwiaWF0IjoxNTI1NzIyMTE5fQ.I_kQV_5ElB-OFuVLT9vG2q_DvjX2tPy0WlnmUzK1l7rPBtBLtLipiS49KKT4tgRAGOLZn57qHXz_d3FRLaBD7_A2KShFkFd5rhZFH9Irti5rLHwJz4lqv3QTl-l9kTpEyQRuJWq48rtylyuZueZHyFqPHM1GB0lZfAAT3S9ECngfUhNY1u4J3v3f5RLhGw36xwn983b-pR9WHGf-pISLr5mnAY4zYrBuDk7KOnA8GW3SrN5pAUaK-4kP0QDRwXmTChiA5sKDrJAsT9tsp9z5sy0TqwQyrKsrrVaCc_DxRFfctn2Ff-2stG-Z85eQFBvxCO34QXdDsMPm5msx3764Sw"
 	wrongSigToken  = validTestToken + "A"
 )
 
+type mockVerifier struct{}
+
+// VerifyIDToken checks the validity of a given Google-issued OAuth2 token ID, using canned certs
+func (v *mockVerifier) VerifyIDToken(idToken string, audience []string) error {
+	certs, err := getTestCerts()
+	if err != nil {
+		return err
+	}
+	return VerifySignedJWTWithCerts(idToken, certs, audience, Issuers, MaxTokenLifetime)
+}
 func TestParseJWT(t *testing.T) {
 	header, claimSet, _ := parseJWT(validTestToken)
 	if len(header.KeyID) == 0 {
@@ -22,28 +32,26 @@ func TestParseJWT(t *testing.T) {
 }
 
 func TestVerifier(t *testing.T) {
-	v := CertsVerifier{}
-	err := v.VerifyIDToken(wrongSigToken, []string{})
+	_, claimSet, _ := parseJWT(validTestToken)
+
+	v := mockVerifier{}
+	err := v.VerifyIDToken(wrongSigToken, []string{claimSet.Aud})
 	if err != ErrWrongSignature {
 		t.Error("Expect ErrWrongSignature")
 	}
-	err = v.VerifyIDToken(validTestToken, []string{})
-	if err != ErrTokenUsedTooLate {
-		t.Error("Expect ErrTokenUsedTooLate")
+	err = v.VerifyIDToken(validTestToken, []string{claimSet.Aud})
+	if err != nil && err != ErrTokenUsedTooLate {
+		t.Error(err)
+		t.Error("Expect ErrTokenUsedTooLate or actual valid token")
 	}
-
-	_, claimSet, _ := parseJWT(validTestToken)
 
 	nowFn = func() time.Time {
 		return time.Unix(claimSet.Exp, 0)
 	}
 	err = v.VerifyIDToken(validTestToken, []string{})
 	if !strings.Contains(err.Error(), "Wrong aud:") {
-		t.Log(err.Error())
 		t.Error("Expect wrong aud error")
 	}
-
-	t.Log(claimSet.Aud)
 
 	err = v.VerifyIDToken(validTestToken, []string{
 		claimSet.Aud,
