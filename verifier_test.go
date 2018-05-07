@@ -22,7 +22,7 @@ func TestParseJWT(t *testing.T) {
 }
 
 func TestVerifier(t *testing.T) {
-	v := Verifier{}
+	v := CertsVerifier{}
 	err := v.VerifyIDToken(wrongSigToken, []string{})
 	if err != ErrWrongSignature {
 		t.Error("Expect ErrWrongSignature")
