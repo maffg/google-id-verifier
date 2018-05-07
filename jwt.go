@@ -1,4 +1,4 @@
-package googleAuthIDTokenVerifier
+package googleIDVerifier
 
 import (
 	"encoding/base64"
