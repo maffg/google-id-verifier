@@ -1,24 +1,24 @@
-# google-auth-id-token-verifier
+# google-id-verifier
 
-Golang port of [OAuth2Client.prototype.verifyIdToken](https://github.com/google/google-auth-library-nodejs/blob/master/lib/auth/oauth2client.js) from [google-auth-library-nodejs](https://github.com/google/google-auth-library-nodejs)
+Golang port of [OAuth2Client.prototype.verifyIdToken](https://github.com/google/google-auth-library-nodejs/blob/master/src/auth/oauth2client.ts) from [google-auth-library-nodejs](https://github.com/google/google-auth-library-nodejs)
 
-Verify idtoken without making http request to tokeninfo API.
+Verifies Google-issued ID tokens without making http request to the tokeninfo API.
 
 ## Usage
 
 ```go
 
 import (
-    "github.com/futurenda/google-auth-id-token-verifier"
+    "github.com/serjlee/google-id-verifier"
 )
 
-v := googleAuthIDTokenVerifier.Verifier{}
+v := googleIDVerifier.CertsVerifier{}
 aud := "xxxxxx-yyyyyyy.apps.googleusercontent.com"
 err := v.VerifyIDToken(TOKEN, []string{
     aud,
 })
 if err == nil {
-    claimSet, err := googleAuthIDTokenVerifier.Decode(TOKEN)
+    claimSet, err := googleIDVerifier.Decode(TOKEN)
     // claimSet.Iss,claimSet.Email ... (See claimset.go)
 }
 ```
