@@ -17,7 +17,7 @@ type Certs struct {
 }
 
 var (
-	certs *Certs
+	cachedCerts *Certs
 
 	// Google Sign on certificates.
 	googleOAuth2FederatedSignonCertsURL = "https://www.googleapis.com/oauth2/v3/certs"
@@ -37,14 +37,31 @@ type response struct {
 }
 
 func getFederatedSignonCerts() (*Certs, error) {
-	if certs != nil {
-		if time.Now().Before(certs.Expiry) {
-			return certs, nil
+	if cachedCerts != nil {
+		if time.Now().Before(cachedCerts.Expiry) {
+			return cachedCerts, nil
 		}
 	}
-	resp, err := http.Get(googleOAuth2FederatedSignonCertsURL)
+	res, cacheAge, err := fetchFederatedSignonCerts()
 	if err != nil {
 		return nil, err
+	}
+
+	parsedCerts, err := parseCerts(res, cacheAge)
+	if err != nil {
+		return nil, err
+	}
+
+	// cache certs
+	cachedCerts = parsedCerts
+
+	return parsedCerts, nil
+}
+
+func fetchFederatedSignonCerts() (*response, int64, error) {
+	resp, err := http.Get(googleOAuth2FederatedSignonCertsURL)
+	if err != nil {
+		return nil, 0, err
 	}
 	cacheControl := resp.Header.Get("cache-control")
 	cacheAge := int64(7200) // Set default cacheAge to 2 hours
@@ -56,7 +73,7 @@ func getFederatedSignonCerts() (*Certs, error) {
 				maxAge := match[0][1]
 				maxAgeInt, err := strconv.ParseInt(maxAge, 10, 64)
 				if err != nil {
-					return nil, err
+					return nil, 0, err
 				}
 				cacheAge = maxAgeInt
 			}
@@ -66,9 +83,13 @@ func getFederatedSignonCerts() (*Certs, error) {
 	res := &response{}
 	err = json.NewDecoder(resp.Body).Decode(&res)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
+	return res, cacheAge, nil
+}
+
+func parseCerts(res *response, cacheAge int64) (*Certs, error) {
 	keys := map[string]*rsa.PublicKey{}
 	for _, key := range res.Keys {
 		if key.Use == "sig" && key.Kty == "RSA" {
@@ -90,10 +111,8 @@ func getFederatedSignonCerts() (*Certs, error) {
 			}
 		}
 	}
-	certs = &Certs{
+	return &Certs{
 		Keys:   keys,
 		Expiry: time.Now().Add(time.Second * time.Duration(cacheAge)),
-	}
-
-	return certs, nil
+	}, nil
 }
