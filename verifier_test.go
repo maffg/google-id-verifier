@@ -23,11 +23,11 @@ func TestParseJWT(t *testing.T) {
 
 func TestVerifier(t *testing.T) {
 	v := Verifier{}
-	err := v.verifyIDToken(wrongSigToken, []string{})
+	err := v.VerifyIDToken(wrongSigToken, []string{})
 	if err != ErrWrongSignature {
 		t.Error("Expect ErrWrongSignature")
 	}
-	err = v.verifyIDToken(validTestToken, []string{})
+	err = v.VerifyIDToken(validTestToken, []string{})
 	if err != ErrTokenUsedTooLate {
 		t.Error("Expect ErrTokenUsedTooLate")
 	}
@@ -37,7 +37,7 @@ func TestVerifier(t *testing.T) {
 	nowFn = func() time.Time {
 		return time.Unix(claimSet.Exp, 0)
 	}
-	err = v.verifyIDToken(validTestToken, []string{})
+	err = v.VerifyIDToken(validTestToken, []string{})
 	if !strings.Contains(err.Error(), "Wrong aud:") {
 		t.Log(err.Error())
 		t.Error("Expect wrong aud error")
@@ -45,7 +45,7 @@ func TestVerifier(t *testing.T) {
 
 	t.Log(claimSet.Aud)
 
-	err = v.verifyIDToken(validTestToken, []string{
+	err = v.VerifyIDToken(validTestToken, []string{
 		claimSet.Aud,
 	})
 	if err != nil {
