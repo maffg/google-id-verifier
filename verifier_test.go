@@ -14,7 +14,7 @@ var (
 type mockVerifier struct{}
 
 // VerifyIDToken checks the validity of a given Google-issued OAuth2 token ID, using canned certs
-func (v *mockVerifier) VerifyIDToken(idToken string, audience []string) error {
+func (v *mockVerifier) VerifyIDToken(idToken string, audience ...string) error {
 	certs, err := getTestCerts()
 	if err != nil {
 		return err
@@ -35,11 +35,11 @@ func TestVerifier(t *testing.T) {
 	_, claimSet, _ := parseJWT(validTestToken)
 
 	v := mockVerifier{}
-	err := v.VerifyIDToken(wrongSigToken, []string{claimSet.Aud})
+	err := v.VerifyIDToken(wrongSigToken, claimSet.Aud)
 	if err != ErrWrongSignature {
 		t.Error("Expect ErrWrongSignature")
 	}
-	err = v.VerifyIDToken(validTestToken, []string{claimSet.Aud})
+	err = v.VerifyIDToken(validTestToken, claimSet.Aud)
 	if err != nil && err != ErrTokenUsedTooLate {
 		t.Error(err)
 		t.Error("Expect ErrTokenUsedTooLate or actual valid token")
@@ -48,14 +48,12 @@ func TestVerifier(t *testing.T) {
 	nowFn = func() time.Time {
 		return time.Unix(claimSet.Exp, 0)
 	}
-	err = v.VerifyIDToken(validTestToken, []string{})
+	err = v.VerifyIDToken(validTestToken)
 	if !strings.Contains(err.Error(), "Wrong aud:") {
 		t.Error("Expect wrong aud error")
 	}
 
-	err = v.VerifyIDToken(validTestToken, []string{
-		claimSet.Aud,
-	})
+	err = v.VerifyIDToken(validTestToken, claimSet.Aud)
 	if err != nil {
 		t.Error(err)
 	}

@@ -24,17 +24,22 @@ var (
 // TokenVerifier has a method to verify a Google-issued OAuth2 token ID
 type TokenVerifier interface {
 	// VerifyIDToken checks the validity of a given Google-issued OAuth2 token ID
-	VerifyIDToken(idToken string, audience []string) error
+	VerifyIDToken(idToken string, audience ...string) error
 }
 
 // CertsVerifier implements Verifier by fetching once in a while the Google certs and validating the ID tokens locally
-type CertsVerifier struct{}
+type CertsVerifier struct {
+	DefaultAudience []string
+}
 
 // VerifyIDToken checks the validity of a given Google-issued OAuth2 token ID
-func (v *CertsVerifier) VerifyIDToken(idToken string, audience []string) error {
+func (v *CertsVerifier) VerifyIDToken(idToken string, audience ...string) error {
 	certs, err := getFederatedSignonCerts()
 	if err != nil {
 		return err
+	}
+	if len(audience) == 0 {
+		audience = v.DefaultAudience
 	}
 	return VerifySignedJWTWithCerts(idToken, certs, audience, Issuers, MaxTokenLifetime)
 }
